@@ -8,7 +8,7 @@ This folder is a copy; if you change the firmware, change `src/`/`include/` and 
 2. **File → Preferences → Additional boards manager URLs**, add:
    `https://espressif.github.io/arduino-esp32/package_esp32_index.json`
 3. **Tools → Board → Boards Manager**, install **esp32 by Espressif Systems** (2.0.17 or 3.x).
-4. **Tools → Manage Libraries**, install **MFRC522** by GithubCommunity (miguelbalboa).
+4. **Tools → Manage Libraries**, install **MFRC522v2** (OSSLibraries; do not install the older MFRC522 as well).
 
 ## Open and upload
 1. Open `arduino/SmartPack/SmartPack.ino` (keep the folder name `SmartPack`).

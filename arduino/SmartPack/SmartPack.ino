@@ -8,7 +8,9 @@
 //    must be marked inside, otherwise the red LED/buzzer fire and the app is
 //    told exactly which items are missing.
 #include <Arduino.h>
-#include <MFRC522.h>
+#include <MFRC522DriverPinSimple.h>
+#include <MFRC522DriverSPI.h>
+#include <MFRC522v2.h>
 #include <SPI.h>
 #include <stdarg.h>
 #include "ble_link.h"
@@ -24,8 +26,17 @@ static constexpr uint32_t SAME_TAG_COOLDOWN_MS = 1500;
 static constexpr uint32_t READER_POLL_MS = 60;
 static constexpr uint32_t ENROLL_TIMEOUT_MS = 30000;
 
-static MFRC522 readers[sp::NUM_COMPARTMENTS] = {MFRC522(RFID1_SS, RFID1_RST),
-                                                MFRC522(RFID2_SS, RFID2_RST)};
+// MFRC522v2 library: one chip-select pin + SPI driver + reader object per compartment.
+// (The library does not drive the RST pin; setup() resets both readers by hand.)
+static MFRC522DriverPinSimple ssPin1(RFID1_SS);
+static MFRC522DriverPinSimple ssPin2(RFID2_SS);
+static MFRC522DriverSPI driver1{ssPin1};
+static MFRC522DriverSPI driver2{ssPin2};
+static MFRC522 reader1{driver1};
+static MFRC522 reader2{driver2};
+static MFRC522* const readers[sp::NUM_COMPARTMENTS] = {&reader1, &reader2};
+static MFRC522Driver* const drivers[sp::NUM_COMPARTMENTS] = {&driver1, &driver2};
+static const uint8_t rstPins[sp::NUM_COMPARTMENTS] = {RFID1_RST, RFID2_RST};
 static const uint8_t reedPins[sp::NUM_COMPARTMENTS] = {REED1_PIN, REED2_PIN};
 
 static sp::Bag bag;
@@ -158,7 +169,7 @@ static void pollReaders(uint32_t now) {
   readerPollIdx = (readerPollIdx + 1) % sp::NUM_COMPARTMENTS;  // alternate readers
 
   sp::Uid u;
-  if (!readUid(readers[c], u)) return;
+  if (!readUid(*readers[c], u)) return;
   if (u == lastUid[c] && now - lastUidMs[c] < SAME_TAG_COOLDOWN_MS) return;
   lastUid[c] = u;
   lastUidMs[c] = now;
@@ -264,8 +275,13 @@ void setup() {
   SPI.begin(SPI_SCK, SPI_MISO, SPI_MOSI);
   bool fault = false;
   for (int c = 0; c < sp::NUM_COMPARTMENTS; c++) {
-    readers[c].PCD_Init();
-    byte ver = readers[c].PCD_ReadRegister(MFRC522::VersionReg);
+    pinMode(rstPins[c], OUTPUT);  // hardware reset pulse
+    digitalWrite(rstPins[c], LOW);
+    delay(10);
+    digitalWrite(rstPins[c], HIGH);
+    delay(50);
+    readers[c]->PCD_Init();
+    byte ver = drivers[c]->PCD_ReadRegister(MFRC522::PCD_Register::VersionReg);
     Serial.printf("RFID %d firmware version 0x%02X\n", c + 1, ver);
     if (ver == 0x00 || ver == 0xFF) fault = true;
   }
