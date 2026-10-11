@@ -26,18 +26,17 @@ static constexpr uint32_t SAME_TAG_COOLDOWN_MS = 1500;
 static constexpr uint32_t READER_POLL_MS = 60;
 static constexpr uint32_t ENROLL_TIMEOUT_MS = 30000;
 
-// MFRC522v2 library: one chip-select pin + SPI driver + reader object per compartment.
-// (The library does not drive the RST pin; setup() resets both readers by hand.)
-static MFRC522DriverPinSimple ssPin1(RFID1_SS);
-static MFRC522DriverPinSimple ssPin2(RFID2_SS);
-static MFRC522DriverSPI driver1{ssPin1};
-static MFRC522DriverSPI driver2{ssPin2};
-static MFRC522 reader1{driver1};
-static MFRC522 reader2{driver2};
-static MFRC522* const readers[sp::NUM_COMPARTMENTS] = {&reader1, &reader2};
-static MFRC522Driver* const drivers[sp::NUM_COMPARTMENTS] = {&driver1, &driver2};
-static const uint8_t rstPins[sp::NUM_COMPARTMENTS] = {RFID1_RST, RFID2_RST};
-static const uint8_t reedPins[sp::NUM_COMPARTMENTS] = {REED1_PIN, REED2_PIN};
+// Wiring of each compartment (see pins.h). The MFRC522v2 library needs one chip-select pin,
+// one SPI driver and one reader object per compartment; they are created in setup().
+// The library does not drive the RST pin, so setup() resets every reader by hand.
+struct CompartmentPins {
+  uint8_t ss, rst, reed;
+};
+static const CompartmentPins PINS[] = COMPARTMENT_PIN_TABLE;
+static_assert(sizeof(PINS) / sizeof(PINS[0]) == sp::NUM_COMPARTMENTS,
+              "COMPARTMENT_PIN_TABLE must have exactly SP_NUM_COMPARTMENTS rows");
+static MFRC522* readers[sp::NUM_COMPARTMENTS];
+static MFRC522Driver* drivers[sp::NUM_COMPARTMENTS];
 
 static sp::Bag bag;
 static Storage storage;
@@ -75,7 +74,7 @@ static void emitUid(const char* tag, int c, const sp::Uid& u) {
 }
 
 // ---- reed switches ----
-static bool readReedClosed(int c) { return digitalRead(reedPins[c]) == LOW; }
+static bool readReedClosed(int c) { return digitalRead(PINS[c].reed) == LOW; }
 
 static void verifyCompartment(int c) {
   sp::Uid missing[sp::MAX_ITEMS];
@@ -268,18 +267,20 @@ static void pollSerialCommands() {
 void setup() {
   Serial.begin(115200);
   indicator.begin();
-  for (int c = 0; c < sp::NUM_COMPARTMENTS; c++) pinMode(reedPins[c], INPUT_PULLUP);
+  for (int c = 0; c < sp::NUM_COMPARTMENTS; c++) pinMode(PINS[c].reed, INPUT_PULLUP);
 
   if (!storage.load(bag)) Serial.println("No saved config, starting empty");
 
   SPI.begin(SPI_SCK, SPI_MISO, SPI_MOSI);
   bool fault = false;
   for (int c = 0; c < sp::NUM_COMPARTMENTS; c++) {
-    pinMode(rstPins[c], OUTPUT);  // hardware reset pulse
-    digitalWrite(rstPins[c], LOW);
+    pinMode(PINS[c].rst, OUTPUT);  // hardware reset pulse
+    digitalWrite(PINS[c].rst, LOW);
     delay(10);
-    digitalWrite(rstPins[c], HIGH);
+    digitalWrite(PINS[c].rst, HIGH);
     delay(50);
+    drivers[c] = new MFRC522DriverSPI(*new MFRC522DriverPinSimple(PINS[c].ss));
+    readers[c] = new MFRC522(*drivers[c]);
     readers[c]->PCD_Init();
     byte ver = drivers[c]->PCD_ReadRegister(MFRC522::PCD_Register::VersionReg);
     Serial.printf("RFID %d firmware version 0x%02X\n", c + 1, ver);

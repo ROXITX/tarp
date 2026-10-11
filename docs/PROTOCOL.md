@@ -1,6 +1,6 @@
 # SmartPack BLE protocol (draft v0)
 
-Device name: `SmartPack`. Compartments are numbered **1..2**. UIDs are upper-case hex (4/7/10 bytes).
+Device name: `SmartPack`. Compartments are numbered **1..N** (N = 2 in the prototype; see `README.md`, "Number of compartments"). UIDs are upper-case hex (4/7/10 bytes).
 The same text lines work over USB serial (115200) for bench testing.
 
 | Role | UUID |

@@ -49,11 +49,26 @@ int main() {
   assert(parseCommand("SET 1 04A1B2C3 1", c) && c.type == CmdType::Set && c.value);
   assert(parseCommand("ENROLL 1\n", c) && c.type == CmdType::Enroll && c.comp == 0);
   assert(parseCommand("status", c) && c.type == CmdType::Status);
-  assert(!parseCommand("ADD 3 04A1B2C3", c));   // no compartment 3
+  char beyond[40];
+  snprintf(beyond, sizeof beyond, "ADD %d 04A1B2C3", NUM_COMPARTMENTS + 1);
+  assert(!parseCommand(beyond, c));             // one past the last compartment
+  snprintf(beyond, sizeof beyond, "ADD %d 04A1B2C3", NUM_COMPARTMENTS);
+  assert(parseCommand(beyond, c) && c.comp == NUM_COMPARTMENTS - 1);  // last compartment accepted
   assert(!parseCommand("ADD 1", c));
   assert(!parseCommand("SET 1 04A1B2C3 2", c));
   assert(!parseCommand("", c) && !parseCommand("HELLO", c));
 
-  puts("all core tests passed");
+  // every compartment is independent: one item per compartment, verified separately
+  Bag many;
+  for (int k = 0; k < NUM_COMPARTMENTS; k++) { Uid u; u.len = 4; u.b[0] = (uint8_t)(0xA0 + k); assert(many.addItem(k, u)); }
+  for (int k = 0; k < NUM_COMPARTMENTS; k++) {
+    assert(many.verify(k, missing, MAX_ITEMS, n) == Verify::Missing);
+    Uid u; u.len = 4; u.b[0] = (uint8_t)(0xA0 + k);
+    assert(many.scan(k, u) == ScanResult::NowInside);
+    assert(many.verify(k, missing, MAX_ITEMS, n) == Verify::AllPresent);
+    for (int j = k + 1; j < NUM_COMPARTMENTS; j++) assert(many.verify(j, missing, MAX_ITEMS, n) == Verify::Missing);
+  }
+
+  printf("all core tests passed (%d compartments)\n", NUM_COMPARTMENTS);
   return 0;
 }

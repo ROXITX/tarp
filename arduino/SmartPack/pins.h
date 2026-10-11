@@ -24,3 +24,8 @@
 
 // Buzzer
 #define BUZZER_PIN 32
+
+// Per-compartment wiring table: one row per compartment, {RFID SS, RFID RST, REED pin}.
+// The SPI bus (SCK/MISO/MOSI) is shared by all readers. To add a compartment, add a row
+// here (plus its reader and reed switch on those pins) and raise SP_NUM_COMPARTMENTS.
+#define COMPARTMENT_PIN_TABLE { {RFID1_SS, RFID1_RST, REED1_PIN}, {RFID2_SS, RFID2_RST, REED2_PIN} }

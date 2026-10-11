@@ -1,3 +1,4 @@
+// Number of compartments of the bag. Must equal SP_NUM_COMPARTMENTS in the firmware.
 const int kCompartments = 2;
 
 class BagItem {

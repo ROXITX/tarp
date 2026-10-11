@@ -10,7 +10,12 @@
 
 namespace sp {
 
-constexpr int NUM_COMPARTMENTS = 2;
+// Number of compartments of the bag (one RFID reader + one reed switch each).
+// Override at build time, e.g. -DSP_NUM_COMPARTMENTS=3 (and extend COMPARTMENT_PIN_TABLE).
+#ifndef SP_NUM_COMPARTMENTS
+#define SP_NUM_COMPARTMENTS 2
+#endif
+constexpr int NUM_COMPARTMENTS = SP_NUM_COMPARTMENTS;
 constexpr int MAX_ITEMS = 16;   // tracked items per compartment
 constexpr int MAX_UID = 10;     // MFRC522 UIDs are 4, 7 or 10 bytes
 

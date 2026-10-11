@@ -22,6 +22,9 @@ Type `ENROLL 1`, tap a tag on reader 1 -> `ENROLLED 1 <UID>`.
 Tap it again -> `IN 1 <UID>`, again -> `OUT 1 <UID>`. Short the reed pin to GND (closed) -> `CLOSED 1` and a verify result.
 Commands: see `../docs/PROTOCOL.md`.
 
+## More than two compartments
+Add a row to `COMPARTMENT_PIN_TABLE` in `pins.h`, and put `#define SP_NUM_COMPARTMENTS 3` (your number) as the first line of `SmartPack.ino`. The build stops with a clear message if the table and the number disagree.
+
 ## Re-copy after changing the firmware
 ```bash
 cp src/main.cpp arduino/SmartPack/SmartPack.ino
