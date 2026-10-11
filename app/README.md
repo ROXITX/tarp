@@ -37,5 +37,6 @@ Set `minSdkVersion 21` or higher in `android/app/build.gradle`.
 | `lib/home_screen.dart` | Two compartment cards, add/remove items, live IN/OUT, connect sheet |
 
 * **Add item:** tap *Add item*, type a name, tap the tag on the reader. App sends `ENROLL n`, bag answers `ENROLLED n UID`, app stores UID + name.
+* **Delete item:** tap the bin icon on an item and confirm; the app sends `DEL n UID` and removes it locally (needs a connection, so the bag and phone stay in step).
 * **On connect:** app sends `LIST 1`, `LIST 2`, `STATUS`; adds back items the bag lost, adopts the bag's IN/OUT state, and shows tags it doesn't know as "Unnamed tag XXXX".
 * **On closure:** bag sends `MISS` lines then `VERIFY n MISSING k`; app shows a dialog naming each missing item.

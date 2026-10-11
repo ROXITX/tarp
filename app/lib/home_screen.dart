@@ -143,18 +143,24 @@ class _CompartmentCard extends StatelessWidget {
           const Divider(),
           if (c.items.isEmpty) const Padding(padding: EdgeInsets.all(8), child: Text('No items yet')),
           for (final item in c.items)
-            Dismissible(
+            ListTile(
               key: ValueKey('${index}_${item.uid}'),
-              direction: DismissDirection.endToStart,
-              background: Container(color: Colors.red, alignment: Alignment.centerRight, padding: const EdgeInsets.only(right: 16), child: const Icon(Icons.delete, color: Colors.white)),
-              onDismissed: (_) => store.removeItem(index, item),
-              child: ListTile(
-                dense: true,
-                leading: Icon(item.inside ? Icons.check_circle : Icons.radio_button_unchecked,
-                    color: item.inside ? Colors.green : Colors.grey),
-                title: Text(item.name),
-                subtitle: Text(item.uid),
-                trailing: Switch(value: item.inside, onChanged: (v) => store.setInside(index, item, v)),
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(item.inside ? Icons.check_circle : Icons.radio_button_unchecked,
+                  color: item.inside ? Colors.green : Colors.grey),
+              title: Text(item.name),
+              subtitle: Text(item.uid),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Switch(value: item.inside, onChanged: (v) => store.setInside(index, item, v)),
+                  IconButton(
+                    tooltip: 'Delete item',
+                    icon: const Icon(Icons.delete_outline),
+                    onPressed: () => _confirmDelete(context, store, item),
+                  ),
+                ],
               ),
             ),
           Align(
@@ -172,6 +178,22 @@ class _CompartmentCard extends StatelessWidget {
         ]),
       ),
     );
+  }
+
+  Future<void> _confirmDelete(BuildContext context, BagStore store, BagItem item) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Delete item?'),
+        content: Text('Remove "${item.name}" from ${store.compartments[index].name}? '
+            'Its tag will no longer be tracked.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Delete')),
+        ],
+      ),
+    );
+    if (ok == true) await store.removeItem(index, item);
   }
 
   Future<void> _addItem(BuildContext context, BagStore store) async {

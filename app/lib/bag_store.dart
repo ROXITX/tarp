@@ -98,10 +98,18 @@ class BagStore extends ChangeNotifier {
     await _send('CANCEL');
   }
 
-  Future<void> removeItem(int index, BagItem item) async {
+  /// Removes an item from the phone and from the bag. Needs a connection so the
+  /// two stay in step (otherwise the bag would hand the tag back at the next sync).
+  Future<bool> removeItem(int index, BagItem item) async {
+    if (!connected) {
+      lastMessage = 'Connect to the bag to delete items';
+      notifyListeners();
+      return false;
+    }
     compartments[index].items.remove(item);
     _changed();
     await _send('DEL ${index + 1} ${item.uid}');
+    return true;
   }
 
   /// Manual correction if the app/bag disagree about an item being inside.
